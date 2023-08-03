@@ -361,6 +361,7 @@ func NewMainKubelet(kubeCfg *kubeletconfiginternal.KubeletConfiguration,
 	nodeStatusMaxImages int32,
 	seccompDefault bool,
 ) (*Kubelet, error) {
+	//不懂，需要补充context包的知识
 	ctx := context.Background()
 	logger := klog.TODO()
 
@@ -381,6 +382,7 @@ func NewMainKubelet(kubeCfg *kubeletconfiginternal.KubeletConfiguration,
 
 	// If kubeClient == nil, we are running in standalone mode (i.e. no API servers)
 	// If not nil, we are running as part of a cluster and should sync w/API
+	// 先不看else,主要看正常模式
 	if kubeDeps.KubeClient != nil {
 		kubeInformers := informers.NewSharedInformerFactoryWithOptions(kubeDeps.KubeClient, 0, informers.WithTweakListOptions(func(options *metav1.ListOptions) {
 			options.FieldSelector = fields.Set{metav1.ObjectNameField: string(nodeName)}.String()
@@ -401,6 +403,7 @@ func NewMainKubelet(kubeCfg *kubeletconfiginternal.KubeletConfiguration,
 
 	if kubeDeps.PodConfig == nil {
 		var err error
+		//这个函数把重要的三个信号源都生成了，kubeDeps.PodConfig会接收来自三个信号源的更新
 		kubeDeps.PodConfig, err = makePodSourceConfig(kubeCfg, kubeDeps, nodeName, nodeHasSynced)
 		if err != nil {
 			return nil, err
@@ -557,7 +560,7 @@ func NewMainKubelet(kubeCfg *kubeletconfiginternal.KubeletConfiguration,
 	if klet.cloud != nil {
 		klet.cloudResourceSyncManager = cloudresource.NewSyncManager(klet.cloud, nodeName, klet.nodeStatusUpdateFrequency)
 	}
-
+	// secretManager和configMapManager初始化，因为这两者被使用都是需要往容器内挂载目录的，需要kubelet来参与
 	var secretManager secret.Manager
 	var configMapManager configmap.Manager
 	if klet.kubeClient != nil {
@@ -591,7 +594,7 @@ func NewMainKubelet(kubeCfg *kubeletconfiginternal.KubeletConfiguration,
 	klet.setCachedMachineInfo(machineInfo)
 
 	imageBackOff := flowcontrol.NewBackOff(backOffPeriod, MaxContainerBackOff)
-
+	// 初始化存活探针管理器
 	klet.livenessManager = proberesults.NewManager()
 	klet.readinessManager = proberesults.NewManager()
 	klet.startupManager = proberesults.NewManager()
@@ -623,7 +626,9 @@ func NewMainKubelet(kubeCfg *kubeletconfiginternal.KubeletConfiguration,
 	klet.containerLogManager = containerLogManager
 
 	klet.reasonCache = NewReasonCache()
+	// pod workQueue初始化
 	klet.workQueue = queue.NewBasicWorkQueue(klet.clock)
+	// pod worker初始化，worker从workQueue中取队首，根据指令对pod进行相应的直接操作，另外还有更新pod cache的操作
 	klet.podWorkers = newPodWorkers(
 		klet,
 		kubeDeps.Recorder,
@@ -632,7 +637,7 @@ func NewMainKubelet(kubeCfg *kubeletconfiginternal.KubeletConfiguration,
 		backOffPeriod,
 		klet.podCache,
 	)
-
+	// kubelet相关运行时初始化
 	runtime, err := kuberuntime.NewKubeGenericRuntimeManager(
 		kubecontainer.FilterEventRecorder(kubeDeps.Recorder),
 		klet.livenessManager,
@@ -1538,6 +1543,7 @@ func (kl *Kubelet) initializeRuntimeDependentModules() {
 }
 
 // Run starts the kubelet reacting to config updates
+// 这个Run方法是单独一个协程运行
 func (kl *Kubelet) Run(updates <-chan kubetypes.PodUpdate) {
 	ctx := context.Background()
 	if kl.logServer == nil {

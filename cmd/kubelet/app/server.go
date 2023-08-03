@@ -451,7 +451,7 @@ func UnsecuredDependencies(s *options.KubeletServer, featureGate featuregate.Fea
 		HostUtil:            hu,
 		Mounter:             mounter,
 		Subpather:           subpather,
-		OOMAdjuster:         oom.NewOOMAdjuster(),
+		OOMAdjuster:         oom.NewOOMAdjuster(), //// oom判定器给当前进程设置oom分数，容器内存资源管控的手段就是使用的oom
 		OSInterface:         kubecontainer.RealOS{},
 		VolumePlugins:       plugins,
 		DynamicPluginProber: GetDynamicPluginProber(s.VolumePluginDir, pluginRunner),
@@ -587,6 +587,7 @@ func run(ctx context.Context, s *options.KubeletServer, kubeDeps *kubelet.Depend
 
 	// About to get clients and such, detect standaloneMode
 	standaloneMode := true
+	//如果没有指定--kubeconfig，就是standlone模式，不连接APISERVER，一般用于调试
 	if len(s.KubeConfig) > 0 {
 		standaloneMode = false
 	}
@@ -1215,6 +1216,7 @@ func RunKubelet(kubeServer *options.KubeletServer, kubeDeps *kubelet.Dependencie
 	if kubeDeps.PodConfig == nil {
 		return fmt.Errorf("failed to create kubelet, pod source config was nil")
 	}
+	//podCfg.updates是k.Run的信号源
 	podCfg := kubeDeps.PodConfig
 
 	if err := rlimit.SetNumFiles(uint64(kubeServer.MaxOpenFiles)); err != nil {
@@ -1228,6 +1230,7 @@ func RunKubelet(kubeServer *options.KubeletServer, kubeDeps *kubelet.Dependencie
 		}
 		klog.InfoS("Started kubelet as runonce")
 	} else {
+		//这里是正常启动
 		startKubelet(k, podCfg, &kubeServer.KubeletConfiguration, kubeDeps, kubeServer.EnableServer)
 		klog.InfoS("Started kubelet")
 	}
@@ -1239,6 +1242,7 @@ func startKubelet(k kubelet.Bootstrap, podCfg *config.PodConfig, kubeCfg *kubele
 	go k.Run(podCfg.Updates())
 
 	// start the kubelet server
+	// 提供诸如/metrics /health等api
 	if enableServer {
 		go k.ListenAndServe(kubeCfg, kubeDeps.TLSOptions, kubeDeps.Auth, kubeDeps.TracerProvider)
 	}

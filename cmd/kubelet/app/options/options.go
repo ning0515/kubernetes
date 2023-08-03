@@ -141,7 +141,7 @@ type KubeletFlags struct {
 // NewKubeletFlags will create a new KubeletFlags with default values
 func NewKubeletFlags() *KubeletFlags {
 	return &KubeletFlags{
-		ContainerRuntimeOptions: *NewContainerRuntimeOptions(),
+		ContainerRuntimeOptions: *NewContainerRuntimeOptions(), //初始化了ContainerRuntimeOptions结构体，设置了默认sandbox:3.9
 		CertDirectory:           "/var/lib/kubelet/pki",
 		RootDirectory:           filepath.Clean(defaultRootDir),
 		MaxContainerCount:       -1,

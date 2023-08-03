@@ -41,10 +41,14 @@ func NewOOMAdjuster() *OOMAdjuster {
 	return oomAdjuster
 }
 
+// 获取cgroup下所有进程的pid
 func getPids(cgroupName string) ([]int, error) {
 	return cmutil.GetPids(filepath.Join("/", cgroupName))
 }
 
+// / 修改oom分数，在linux下即是修改/proc/<pid>/oom_score_adj对应的值，
+// 当内存紧张时由linux系统的oom机制去杀掉oom score最高的进程，
+// 默认情况下是使用内存越多的进程oom score越高越容易被kill，applyOOMScoreAdj函数就是用来修改oom score的。
 // Writes 'value' to /proc/<pid>/oom_score_adj. PID = 0 means self
 // Returns os.ErrNotExist if the `pid` does not exist.
 func applyOOMScoreAdj(pid int, oomScoreAdj int) error {
