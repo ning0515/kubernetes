@@ -57,6 +57,7 @@ func NewDeploymentInformer(client kubernetes.Interface, namespace string, resync
 // one. This reduces memory footprint and number of connections to the server.
 func NewFilteredDeploymentInformer(client kubernetes.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) cache.SharedIndexInformer {
 	return cache.NewSharedIndexInformer(
+		//这里的ListWatch就是Reflector需要的,注册的是对应资源的List和Watch方法
 		&cache.ListWatch{
 			ListFunc: func(options v1.ListOptions) (runtime.Object, error) {
 				if tweakListOptions != nil {

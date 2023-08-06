@@ -336,6 +336,7 @@ func (c *Cacher) RequestWatchProgress(ctx context.Context) error {
 // NewCacherFromConfig creates a new Cacher responsible for servicing WATCH and LIST requests from
 // its internal cache and updating its cache in the background based on the
 // given configuration.
+// NewCacherFromConfig 根据给定的配置创建一个新的 Cacher，负责从其内部缓存中提供 WATCH 和 LIST 请求，并根据配置在后台更新其缓存。
 func NewCacherFromConfig(config Config) (*Cacher, error) {
 	stopCh := make(chan struct{})
 	obj := config.NewFunc()

@@ -49,24 +49,32 @@ import (
 const defaultExpectedTypeName = "<unspecified>"
 
 // Reflector watches a specified resource and causes all changes to be reflected in the given store.
+// 反射器监听指定的资源，将所有的变化反射到指定的存储中去
 type Reflector struct {
 	// name identifies this reflector. By default it will be a file:line if possible.
+	// 名字标记了这个反射器的名字，默认值是所在的文件名:行数(比如reflector.go:125),默认值由GetNameFromCallsite生成
 	name string
 	// The name of the type we expect to place in the store. The name
 	// will be the stringification of expectedGVK if provided, and the
 	// stringification of expectedType otherwise. It is for display
 	// only, and should not be used for parsing or comparison.
+	// 期望放到Store中的类型名称，如果提供，则是expectedGVK的字符串形式
+	// 否则就是expectedType的字符串，仅仅用于显示,不用于比较和解析
 	typeDescription string
 	// An example object of the type we expect to place in the store.
 	// Only the type needs to be right, except that when that is
 	// `unstructured.Unstructured` the object's `"apiVersion"` and
 	// `"kind"` must also be right.
+	// 放到Store中的对象的类型
 	expectedType reflect.Type
 	// The GVK of the object we expect to place in the store if unstructured.
+	// 如果对象是非结构化的，就存储GVK
 	expectedGVK *schema.GroupVersionKind
 	// The destination to sync up with the watch source
+	// 与Watch源同步的store
 	store Store
 	// listerWatcher is used to perform lists and watches.
+	//实现反射器的重要接口
 	listerWatcher ListerWatcher
 	// backoff manages backoff of ListWatch
 	backoffManager wait.BackoffManager
@@ -96,6 +104,7 @@ type Reflector struct {
 	// scalability problems.
 	WatchListPageSize int64
 	// ShouldResync is invoked periodically and whenever it returns `true` the Store's Resync operation is invoked
+	// 会被周期性的调用，如果返回是true，就会调用Store的Resync操作
 	ShouldResync func() bool
 	// MaxInternalErrorRetryDuration defines how long we should retry internal errors returned by watch.
 	MaxInternalErrorRetryDuration time.Duration
