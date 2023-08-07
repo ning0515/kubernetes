@@ -355,6 +355,15 @@ func WaitForCacheSync(stopCh <-chan struct{}, cacheSyncs ...InformerSynced) bool
 // the sharedProcessor.  The third main component is that
 // sharedProcessor, which is responsible for relaying those
 // notifications to each of the informer's clients.
+
+// `*sharedIndexInformer` 实现了 SharedIndexInformer 接口，有三个主要组件。
+// 其中一个是带索引的本地缓存，即 `indexer Indexer`。
+// 第二个主要组件是一个控制器，它使用 ListerWatcher 从中提取对象/通知，
+// 并将它们推送到 DeltaFIFO 中。DeltaFIFO 的 knownObjects 是 informer 的本地缓存，
+// 同时它还并发地从该 DeltaFIFO 弹出 Delta 值，并使用 sharedIndexInformer::HandleDeltas 处理这些值。
+// 每次调用 HandleDeltas 都会在持有 fifo 的锁的情况下处理每个 Delta。
+// 对于每个 Delta，这既会更新本地缓存，还会将相关的通知放入 sharedProcessor 中。
+// 第三个主要组件是 sharedProcessor，它负责将这些通知传递给 informer 的每个客户端。
 type sharedIndexInformer struct {
 	indexer    Indexer
 	controller Controller
@@ -452,9 +461,10 @@ func (s *sharedIndexInformer) SetTransform(handler TransformFunc) error {
 	return nil
 }
 
+// 这个Run函数会对每个类型的资源都启动一个
 func (s *sharedIndexInformer) Run(stopCh <-chan struct{}) {
 	defer utilruntime.HandleCrash()
-
+	//针对特定类型的informer只启动一个，启动以后started就变为true
 	if s.HasStarted() {
 		klog.Warningf("The sharedIndexInformer has started, run more than once is not allowed")
 		return

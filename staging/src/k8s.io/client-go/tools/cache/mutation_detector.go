@@ -137,6 +137,7 @@ func (d *defaultCacheMutationDetector) CompareObjects() {
 	// move addedObjs into cachedObjs under lock
 	// this keeps the critical section small to avoid blocking AddObject while we compare cachedObjs
 	d.addedObjsLock.Lock()
+	//将 addedObjs 中的对象追加到 cachedObjs 中，以便进行比较。之后将 addedObjs 置为空，以准备下一轮的添加操作。
 	d.cachedObjs = append(d.cachedObjs, d.addedObjs...)
 	d.addedObjs = nil
 	d.addedObjsLock.Unlock()
