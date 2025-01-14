@@ -23,11 +23,13 @@ import (
 	"testing"
 	"time"
 
+	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/klog/v2/ktesting"
 	testingclock "k8s.io/utils/clock/testing"
 )
 
 func TestExecute(t *testing.T) {
+	_, ctx := ktesting.NewTestContext(t)
 	testVal := int32(0)
 	wg := sync.WaitGroup{}
 	wg.Add(5)
@@ -37,17 +39,17 @@ func TestExecute(t *testing.T) {
 		return nil
 	})
 	now := time.Now()
-	queue.AddWork(context.TODO(), NewWorkArgs("1", "1"), now, now)
-	queue.AddWork(context.TODO(), NewWorkArgs("2", "2"), now, now)
-	queue.AddWork(context.TODO(), NewWorkArgs("3", "3"), now, now)
-	queue.AddWork(context.TODO(), NewWorkArgs("4", "4"), now, now)
-	queue.AddWork(context.TODO(), NewWorkArgs("5", "5"), now, now)
+	queue.AddWork(ctx, NewWorkArgs("1", "1"), now, now)
+	queue.AddWork(ctx, NewWorkArgs("2", "2"), now, now)
+	queue.AddWork(ctx, NewWorkArgs("3", "3"), now, now)
+	queue.AddWork(ctx, NewWorkArgs("4", "4"), now, now)
+	queue.AddWork(ctx, NewWorkArgs("5", "5"), now, now)
 	// Adding the same thing second time should be no-op
-	queue.AddWork(context.TODO(), NewWorkArgs("1", "1"), now, now)
-	queue.AddWork(context.TODO(), NewWorkArgs("2", "2"), now, now)
-	queue.AddWork(context.TODO(), NewWorkArgs("3", "3"), now, now)
-	queue.AddWork(context.TODO(), NewWorkArgs("4", "4"), now, now)
-	queue.AddWork(context.TODO(), NewWorkArgs("5", "5"), now, now)
+	queue.AddWork(ctx, NewWorkArgs("1", "1"), now, now)
+	queue.AddWork(ctx, NewWorkArgs("2", "2"), now, now)
+	queue.AddWork(ctx, NewWorkArgs("3", "3"), now, now)
+	queue.AddWork(ctx, NewWorkArgs("4", "4"), now, now)
+	queue.AddWork(ctx, NewWorkArgs("5", "5"), now, now)
 	wg.Wait()
 	lastVal := atomic.LoadInt32(&testVal)
 	if lastVal != 5 {
@@ -56,6 +58,7 @@ func TestExecute(t *testing.T) {
 }
 
 func TestExecuteDelayed(t *testing.T) {
+	_, ctx := ktesting.NewTestContext(t)
 	testVal := int32(0)
 	wg := sync.WaitGroup{}
 	wg.Add(5)
@@ -68,16 +71,16 @@ func TestExecuteDelayed(t *testing.T) {
 	then := now.Add(10 * time.Second)
 	fakeClock := testingclock.NewFakeClock(now)
 	queue.clock = fakeClock
-	queue.AddWork(context.TODO(), NewWorkArgs("1", "1"), now, then)
-	queue.AddWork(context.TODO(), NewWorkArgs("2", "2"), now, then)
-	queue.AddWork(context.TODO(), NewWorkArgs("3", "3"), now, then)
-	queue.AddWork(context.TODO(), NewWorkArgs("4", "4"), now, then)
-	queue.AddWork(context.TODO(), NewWorkArgs("5", "5"), now, then)
-	queue.AddWork(context.TODO(), NewWorkArgs("1", "1"), now, then)
-	queue.AddWork(context.TODO(), NewWorkArgs("2", "2"), now, then)
-	queue.AddWork(context.TODO(), NewWorkArgs("3", "3"), now, then)
-	queue.AddWork(context.TODO(), NewWorkArgs("4", "4"), now, then)
-	queue.AddWork(context.TODO(), NewWorkArgs("5", "5"), now, then)
+	queue.AddWork(ctx, NewWorkArgs("1", "1"), now, then)
+	queue.AddWork(ctx, NewWorkArgs("2", "2"), now, then)
+	queue.AddWork(ctx, NewWorkArgs("3", "3"), now, then)
+	queue.AddWork(ctx, NewWorkArgs("4", "4"), now, then)
+	queue.AddWork(ctx, NewWorkArgs("5", "5"), now, then)
+	queue.AddWork(ctx, NewWorkArgs("1", "1"), now, then)
+	queue.AddWork(ctx, NewWorkArgs("2", "2"), now, then)
+	queue.AddWork(ctx, NewWorkArgs("3", "3"), now, then)
+	queue.AddWork(ctx, NewWorkArgs("4", "4"), now, then)
+	queue.AddWork(ctx, NewWorkArgs("5", "5"), now, then)
 	fakeClock.Step(11 * time.Second)
 	wg.Wait()
 	lastVal := atomic.LoadInt32(&testVal)
@@ -87,6 +90,7 @@ func TestExecuteDelayed(t *testing.T) {
 }
 
 func TestCancel(t *testing.T) {
+	logger, ctx := ktesting.NewTestContext(t)
 	testVal := int32(0)
 	wg := sync.WaitGroup{}
 	wg.Add(3)
@@ -99,17 +103,16 @@ func TestCancel(t *testing.T) {
 	then := now.Add(10 * time.Second)
 	fakeClock := testingclock.NewFakeClock(now)
 	queue.clock = fakeClock
-	queue.AddWork(context.TODO(), NewWorkArgs("1", "1"), now, then)
-	queue.AddWork(context.TODO(), NewWorkArgs("2", "2"), now, then)
-	queue.AddWork(context.TODO(), NewWorkArgs("3", "3"), now, then)
-	queue.AddWork(context.TODO(), NewWorkArgs("4", "4"), now, then)
-	queue.AddWork(context.TODO(), NewWorkArgs("5", "5"), now, then)
-	queue.AddWork(context.TODO(), NewWorkArgs("1", "1"), now, then)
-	queue.AddWork(context.TODO(), NewWorkArgs("2", "2"), now, then)
-	queue.AddWork(context.TODO(), NewWorkArgs("3", "3"), now, then)
-	queue.AddWork(context.TODO(), NewWorkArgs("4", "4"), now, then)
-	queue.AddWork(context.TODO(), NewWorkArgs("5", "5"), now, then)
-	logger, _ := ktesting.NewTestContext(t)
+	queue.AddWork(ctx, NewWorkArgs("1", "1"), now, then)
+	queue.AddWork(ctx, NewWorkArgs("2", "2"), now, then)
+	queue.AddWork(ctx, NewWorkArgs("3", "3"), now, then)
+	queue.AddWork(ctx, NewWorkArgs("4", "4"), now, then)
+	queue.AddWork(ctx, NewWorkArgs("5", "5"), now, then)
+	queue.AddWork(ctx, NewWorkArgs("1", "1"), now, then)
+	queue.AddWork(ctx, NewWorkArgs("2", "2"), now, then)
+	queue.AddWork(ctx, NewWorkArgs("3", "3"), now, then)
+	queue.AddWork(ctx, NewWorkArgs("4", "4"), now, then)
+	queue.AddWork(ctx, NewWorkArgs("5", "5"), now, then)
 	queue.CancelWork(logger, NewWorkArgs("2", "2").KeyFromWorkArgs())
 	queue.CancelWork(logger, NewWorkArgs("4", "4").KeyFromWorkArgs())
 	fakeClock.Step(11 * time.Second)
@@ -121,6 +124,7 @@ func TestCancel(t *testing.T) {
 }
 
 func TestCancelAndReadd(t *testing.T) {
+	logger, ctx := ktesting.NewTestContext(t)
 	testVal := int32(0)
 	wg := sync.WaitGroup{}
 	wg.Add(4)
@@ -133,24 +137,64 @@ func TestCancelAndReadd(t *testing.T) {
 	then := now.Add(10 * time.Second)
 	fakeClock := testingclock.NewFakeClock(now)
 	queue.clock = fakeClock
-	queue.AddWork(context.TODO(), NewWorkArgs("1", "1"), now, then)
-	queue.AddWork(context.TODO(), NewWorkArgs("2", "2"), now, then)
-	queue.AddWork(context.TODO(), NewWorkArgs("3", "3"), now, then)
-	queue.AddWork(context.TODO(), NewWorkArgs("4", "4"), now, then)
-	queue.AddWork(context.TODO(), NewWorkArgs("5", "5"), now, then)
-	queue.AddWork(context.TODO(), NewWorkArgs("1", "1"), now, then)
-	queue.AddWork(context.TODO(), NewWorkArgs("2", "2"), now, then)
-	queue.AddWork(context.TODO(), NewWorkArgs("3", "3"), now, then)
-	queue.AddWork(context.TODO(), NewWorkArgs("4", "4"), now, then)
-	queue.AddWork(context.TODO(), NewWorkArgs("5", "5"), now, then)
-	logger, _ := ktesting.NewTestContext(t)
+	queue.AddWork(ctx, NewWorkArgs("1", "1"), now, then)
+	queue.AddWork(ctx, NewWorkArgs("2", "2"), now, then)
+	queue.AddWork(ctx, NewWorkArgs("3", "3"), now, then)
+	queue.AddWork(ctx, NewWorkArgs("4", "4"), now, then)
+	queue.AddWork(ctx, NewWorkArgs("5", "5"), now, then)
+	queue.AddWork(ctx, NewWorkArgs("1", "1"), now, then)
+	queue.AddWork(ctx, NewWorkArgs("2", "2"), now, then)
+	queue.AddWork(ctx, NewWorkArgs("3", "3"), now, then)
+	queue.AddWork(ctx, NewWorkArgs("4", "4"), now, then)
+	queue.AddWork(ctx, NewWorkArgs("5", "5"), now, then)
 	queue.CancelWork(logger, NewWorkArgs("2", "2").KeyFromWorkArgs())
 	queue.CancelWork(logger, NewWorkArgs("4", "4").KeyFromWorkArgs())
-	queue.AddWork(context.TODO(), NewWorkArgs("2", "2"), now, then)
+	queue.AddWork(ctx, NewWorkArgs("2", "2"), now, then)
 	fakeClock.Step(11 * time.Second)
 	wg.Wait()
 	lastVal := atomic.LoadInt32(&testVal)
 	if lastVal != 4 {
 		t.Errorf("Expected testVal = 4, got %v", lastVal)
+	}
+}
+
+func TestCancelWorkBeforeWorkFuncDone(t *testing.T) {
+	logger, ctx := ktesting.NewTestContext(t)
+	firstWorkerDispatched := make(chan struct{})
+	cancelWorkDone := make(chan struct{})
+	testVal := int32(0)
+	wg := sync.WaitGroup{}
+	wg.Add(2)
+	queue := CreateWorkerQueue(func(ctx context.Context, fireAt time.Time, args *WorkArgs) error {
+		atomic.AddInt32(&testVal, 1)
+		if testVal == 1 {
+			firstWorkerDispatched <- struct{}{}
+			// Wait for the worker to be deleted before workFunc is done.
+			<-cancelWorkDone
+		}
+		wg.Done()
+		return nil
+	})
+	now := time.Now()
+	then := now.Add(10 * time.Second)
+	fakeClock := testingclock.NewFakeClock(time.Now())
+	queue.clock = fakeClock
+	queue.AddWork(ctx, NewWorkArgs("1", "1"), now, now)
+	<-firstWorkerDispatched
+	queue.CancelWork(logger, NewWorkArgs("1", "1").KeyFromWorkArgs())
+	cancelWorkDone <- struct{}{}
+	err := wait.PollUntilContextTimeout(ctx, 100*time.Millisecond, wait.ForeverTestTimeout, true, func(ctx context.Context) (bool, error) {
+		worker := queue.GetWorkerUnsafe(NewWorkArgs("1", "1").KeyFromWorkArgs())
+		return worker == nil, nil
+	})
+	if err != nil {
+		t.Errorf("Error waiting for worker 1/1 to finish: %s", err)
+	}
+	queue.AddWork(ctx, NewWorkArgs("1", "1"), now, then)
+	fakeClock.Step(20 * time.Second)
+	wg.Wait()
+	lastVal := atomic.LoadInt32(&testVal)
+	if lastVal != 2 {
+		t.Errorf("Expected testVal = 2, got %v", lastVal)
 	}
 }
